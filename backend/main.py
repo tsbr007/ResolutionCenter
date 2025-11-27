@@ -49,10 +49,17 @@ app.add_middleware(
 
 
 
+from datetime import datetime
+
 class Entry(BaseModel):
     id: Optional[str] = None
     problem: str
     solution: str
+    app_name: str = "default"
+    created_by: str = "admin"
+    last_updated_by: str = "admin"
+    creation_date: Optional[str] = None
+    last_update_date: Optional[str] = None
 
     @validator('problem')
     def validate_problem_length(cls, v):
@@ -74,12 +81,34 @@ def read_data():
     try:
         with open(DATA_FILE, "r") as f:
             data = json.load(f)
-            # Migration: Ensure all entries have IDs
+            # Migration: Ensure all entries have IDs and new fields
             modified = False
             for entry in data:
+                entry_modified = False
                 if 'id' not in entry:
                     entry['id'] = str(uuid.uuid4())
+                    entry_modified = True
+                
+                # Backfill new fields
+                if 'app_name' not in entry:
+                    entry['app_name'] = "default"
+                    entry_modified = True
+                if 'created_by' not in entry:
+                    entry['created_by'] = "admin"
+                    entry_modified = True
+                if 'last_updated_by' not in entry:
+                    entry['last_updated_by'] = "admin"
+                    entry_modified = True
+                if 'creation_date' not in entry:
+                    entry['creation_date'] = datetime.now().isoformat()
+                    entry_modified = True
+                if 'last_update_date' not in entry:
+                    entry['last_update_date'] = datetime.now().isoformat()
+                    entry_modified = True
+                
+                if entry_modified:
                     modified = True
+            
             if modified:
                 save_data(data)
             return data
@@ -105,6 +134,17 @@ async def create_entry(entry: Entry):
     
     new_entry = entry.dict()
     new_entry['id'] = str(uuid.uuid4())
+    
+    # Set timestamps
+    now = datetime.now().isoformat()
+    new_entry['creation_date'] = now
+    new_entry['last_update_date'] = now
+    
+    # Ensure defaults if not provided (though Pydantic handles this, dict() might have None if Optional)
+    if not new_entry.get('app_name'): new_entry['app_name'] = "default"
+    if not new_entry.get('created_by'): new_entry['created_by'] = "admin"
+    if not new_entry.get('last_updated_by'): new_entry['last_updated_by'] = "admin"
+
     data.append(new_entry)
     save_data(data)
     return new_entry
@@ -124,6 +164,12 @@ async def update_entry(entry_id: str, updated_entry: Entry):
             # Update fields
             data[i]['problem'] = updated_entry.problem
             data[i]['solution'] = updated_entry.solution
+            data[i]['app_name'] = updated_entry.app_name
+            data[i]['last_updated_by'] = updated_entry.last_updated_by
+            
+            # Update timestamp
+            data[i]['last_update_date'] = datetime.now().isoformat()
+            
             save_data(data)
             return data[i]
             

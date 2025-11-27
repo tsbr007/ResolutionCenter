@@ -1,17 +1,22 @@
 [
     {
-        "problem": "This is test prob 1",
-        "solution": "This is test solution 12",
-        "id": "829e2134-b490-4680-a7a6-b06aabfac602"
+        "id": "c02fc1b0-9da3-4540-9929-a75651802a20",
+        "problem": "Login failure after password reset",
+        "solution": "The user needs to clear their browser cache and cookies. If the issue persists, verify the account status in the admin panel.",
+        "app_name": "CustomerPortal",
+        "created_by": "support_agent_01",
+        "last_updated_by": "support_agent_01",
+        "creation_date": "2025-11-27T12:35:00.000000",
+        "last_update_date": "2025-11-27T12:35:00.000000"
     },
     {
-        "id": "c26d4058-71ef-4016-ad74-c4a02a548482",
-        "problem": "Updated Problem",
-        "solution": "Solution 1"
-    },
-    {
-        "id": "c72b21c0-4cb3-4bb8-908b-c22f4a30b5d3",
-        "problem": "Updated prob 2",
-        "solution": "test2"
+        "id": "d13gd2c1-8eb4-5651-0030-b86762913b31",
+        "problem": "Report generation timeout",
+        "solution": "The date range selected is too large. Advise the user to generate reports for smaller time intervals (e.g., monthly instead of yearly).",
+        "app_name": "AnalyticsDashboard",
+        "created_by": "data_analyst_03",
+        "last_updated_by": "data_analyst_03",
+        "creation_date": "2025-11-27T12:36:00.000000",
+        "last_update_date": "2025-11-27T12:36:00.000000"
     }
 ]
