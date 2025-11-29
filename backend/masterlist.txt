@@ -1,0 +1,10 @@
+Review PR
+Deploy to Prod
+Team Meeting
+Client Call
+Fix Bug
+Write Documentation
+Update Database
+Refactor Code
+Run Tests
+Email Update

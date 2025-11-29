@@ -1,46 +1,25 @@
 import { useState } from 'react';
-import Dashboard from './components/Dashboard';
-import EntryForm from './components/EntryForm';
+import NotesTab from './components/NotesTab';
+import ProblemSolver from './components/ProblemSolver';
+import SearchTab from './components/SearchTab';
+import TodoTab from './components/TodoTab';
 
 function App() {
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [entryToEdit, setEntryToEdit] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [viewMode, setViewMode] = useState(false);
+  const [activeTab, setActiveTab] = useState('problem-solver');
 
-  const handleEntrySaved = () => {
-    setRefreshTrigger(prev => prev + 1);
-    setEntryToEdit(null); // Clear edit mode after save
-    setIsModalOpen(false); // Close modal
-    setViewMode(false);
-  };
-
-  const handleEdit = (entry) => {
-    setEntryToEdit(entry);
-    setViewMode(false);
-    setIsModalOpen(true);
-  };
-
-  const handleRowClick = (entry) => {
-    setEntryToEdit(entry);
-    setViewMode(true);
-    setIsModalOpen(true);
-  };
-
-  const handleSwitchToEdit = () => {
-    setViewMode(false);
-  };
-
-  const handleCancelEdit = () => {
-    setEntryToEdit(null);
-    setIsModalOpen(false);
-    setViewMode(false);
-  };
-
-  const openNewEntryModal = () => {
-    setEntryToEdit(null);
-    setViewMode(false);
-    setIsModalOpen(true);
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'problem-solver':
+        return <ProblemSolver />;
+      case 'todo':
+        return <TodoTab />;
+      case 'notes':
+        return <NotesTab />;
+      case 'search':
+        return <SearchTab />;
+      default:
+        return <ProblemSolver />;
+    }
   };
 
   return (
@@ -64,37 +43,41 @@ function App() {
           <button className="sign-on-btn">Sign On</button>
         </div>
       </header>
-      <div className="main-content">
+
+      <div className="tab-nav-container">
         <div className="container">
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <div className="tab-nav">
             <button 
-              onClick={openNewEntryModal}
-              className="record-issue-btn"
+              className={`tab-btn ${activeTab === 'problem-solver' ? 'active' : ''}`}
+              onClick={() => setActiveTab('problem-solver')}
             >
-              + New
+              Problem Solver
+            </button>
+            <button 
+              className={`tab-btn ${activeTab === 'todo' ? 'active' : ''}`}
+              onClick={() => setActiveTab('todo')}
+            >
+              Todo
+            </button>
+            <button 
+              className={`tab-btn ${activeTab === 'notes' ? 'active' : ''}`}
+              onClick={() => setActiveTab('notes')}
+            >
+              Notes
+            </button>
+            <button 
+              className={`tab-btn ${activeTab === 'search' ? 'active' : ''}`}
+              onClick={() => setActiveTab('search')}
+            >
+              Search
             </button>
           </div>
+        </div>
+      </div>
 
-          <Dashboard 
-            refreshTrigger={refreshTrigger} 
-            onEdit={handleEdit}
-            onRowClick={handleRowClick}
-          />
-
-          {isModalOpen && (
-            <div className="modal-overlay" onClick={handleCancelEdit}>
-              <div className="modal-content" onClick={e => e.stopPropagation()}>
-                <button className="modal-close" onClick={handleCancelEdit}>&times;</button>
-                <EntryForm 
-                  onEntrySaved={handleEntrySaved} 
-                  entryToEdit={entryToEdit}
-                  onCancelEdit={handleCancelEdit}
-                  viewMode={viewMode}
-                  onEdit={handleSwitchToEdit}
-                />
-              </div>
-            </div>
-          )}
+      <div className="main-content">
+        <div className="container">
+          {renderContent()}
         </div>
       </div>
       <div className="app-footer">Developed by Balaji Rajan T S</div>

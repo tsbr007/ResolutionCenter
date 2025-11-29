@@ -1,181 +1,249 @@
 import json
 import os
-import uuid
+import glob
 from typing import List, Optional
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, validator
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from datetime import datetime
+import uuid
 
 app = FastAPI()
 
-# Helper to read properties file
-def read_properties(filepath):
-    properties = {}
-    if os.path.exists(filepath):
-        with open(filepath, 'r') as f:
-            for line in f:
-                line = line.strip()
-                if line and not line.startswith('#'):
-                    key, value = line.split('=', 1)
-                    properties[key.strip()] = value.strip()
-    return properties
-
-# Load properties
-PROPERTIES_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'app.properties')
-config = read_properties(PROPERTIES_FILE)
-BACKEND_PORT = int(config.get('BACKEND_PORT', 8000))
-FRONTEND_PORT = int(config.get('FRONTEND_PORT', 5173))
-DATA_FILE = config.get('DATA_FILE', r"C:\Balaji\Career\KBASE\data.json")
-
-# CORS configuration
-origins = [
-    f"http://localhost:{FRONTEND_PORT}",
-    "http://localhost:5173", # Keep default just in case
-    "http://localhost:3000",
-]
-
-# Add configurable frontend origin
-frontend_origin = os.getenv("FRONTEND_ORIGIN")
-if frontend_origin:
-    origins.append(frontend_origin)
-
+# Enable CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],  # Allows all origins
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["*"],  # Allows all methods
+    allow_headers=["*"],  # Allows all headers
 )
 
+# Load configuration
+def load_config():
+    config = {}
+    try:
+        # Try to find app.properties in parent directory
+        prop_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'app.properties')
+        with open(prop_path, "r") as f:
+            for line in f:
+                line = line.strip()
+                if line and "=" in line and not line.startswith("#"):
+                    key, value = line.split("=", 1)
+                    config[key.strip()] = value.strip()
+    except FileNotFoundError:
+        pass
+    
+    # Defaults
+    if "data.file.path" not in config: config["data.file.path"] = "backend/data.json"
+    if "todo.storage.path" not in config: config["todo.storage.path"] = "backend/todo.json"
+    if "todo.masterlist.path" not in config: config["todo.masterlist.path"] = "backend/masterlist.txt"
+    if "notes.storage.path" not in config: config["notes.storage.path"] = "backend/notes"
+    if "search.root.path" not in config: config["search.root.path"] = "backend"
+    
+    # Resolve relative paths relative to the project root (parent of backend)
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    for key in ["data.file.path", "todo.storage.path", "todo.masterlist.path", "notes.storage.path", "search.root.path"]:
+        if not os.path.isabs(config[key]):
+            config[key] = os.path.join(project_root, config[key])
+            
+    return config
 
+config = load_config()
 
-from datetime import datetime
+# Ensure directories exist
+os.makedirs(os.path.dirname(config["data.file.path"]), exist_ok=True)
+os.makedirs(os.path.dirname(config["todo.storage.path"]), exist_ok=True)
+os.makedirs(config["notes.storage.path"], exist_ok=True)
 
+# Models
 class Entry(BaseModel):
     id: Optional[str] = None
     problem: str
     solution: str
-    app_name: str = "default"
-    created_by: str = "admin"
-    last_updated_by: str = "admin"
+    app_name: str
+    created_by: Optional[str] = None
+    last_updated_by: Optional[str] = None
     creation_date: Optional[str] = None
     last_update_date: Optional[str] = None
 
-    @validator('problem')
-    def validate_problem_length(cls, v):
-        word_count = len(v.split())
-        if word_count > 50:
-            raise ValueError('Problem must be 50 words or less')
-        return v
+class TodoItem(BaseModel):
+    id: str
+    context: str
+    task: str
+    duration: str # e.g., "1h 30m"
+    completed: bool = False
 
-    @validator('solution')
-    def validate_solution_length(cls, v):
-        word_count = len(v.split())
-        if word_count > 200:
-            raise ValueError('Solution must be 200 words or less')
-        return v
+class TodoList(BaseModel):
+    current_day: List[TodoItem]
+    next_day: List[TodoItem]
+    pending: List[TodoItem]
 
-def read_data():
-    if not os.path.exists(DATA_FILE):
-        return []
-    try:
-        with open(DATA_FILE, "r") as f:
-            data = json.load(f)
-            # Migration: Ensure all entries have IDs and new fields
-            modified = False
-            for entry in data:
-                entry_modified = False
-                if 'id' not in entry:
-                    entry['id'] = str(uuid.uuid4())
-                    entry_modified = True
-                
-                # Backfill new fields
-                if 'app_name' not in entry:
-                    entry['app_name'] = "default"
-                    entry_modified = True
-                if 'created_by' not in entry:
-                    entry['created_by'] = "admin"
-                    entry_modified = True
-                if 'last_updated_by' not in entry:
-                    entry['last_updated_by'] = "admin"
-                    entry_modified = True
-                if 'creation_date' not in entry:
-                    entry['creation_date'] = datetime.now().isoformat()
-                    entry_modified = True
-                if 'last_update_date' not in entry:
-                    entry['last_update_date'] = datetime.now().isoformat()
-                    entry_modified = True
-                
-                if entry_modified:
-                    modified = True
-            
-            if modified:
-                save_data(data)
-            return data
-    except json.JSONDecodeError:
-        return []
+class Note(BaseModel):
+    title: str
+    content: str
 
-def save_data(data):
-    with open(DATA_FILE, "w") as f:
-        json.dump(data, f, indent=4)
+# --- Problem Solver Endpoints ---
 
 @app.get("/api/entries", response_model=List[Entry])
 async def get_entries():
-    return read_data()
+    try:
+        with open(config["data.file.path"], "r") as f:
+            data = json.load(f)
+        return data
+    except (FileNotFoundError, json.JSONDecodeError):
+        return []
 
-@app.post("/api/entries", response_model=Entry)
+@app.post("/api/entries")
 async def create_entry(entry: Entry):
-    data = read_data()
-    
-    # Check for duplicates
-    for existing in data:
-        if existing['problem'].lower() == entry.problem.lower():
-            raise HTTPException(status_code=400, detail="Problem already exists")
-    
-    new_entry = entry.dict()
-    new_entry['id'] = str(uuid.uuid4())
-    
-    # Set timestamps
-    now = datetime.now().isoformat()
-    new_entry['creation_date'] = now
-    new_entry['last_update_date'] = now
-    
-    # Ensure defaults if not provided (though Pydantic handles this, dict() might have None if Optional)
-    if not new_entry.get('app_name'): new_entry['app_name'] = "default"
-    if not new_entry.get('created_by'): new_entry['created_by'] = "admin"
-    if not new_entry.get('last_updated_by'): new_entry['last_updated_by'] = "admin"
+    try:
+        try:
+            with open(config["data.file.path"], "r") as f:
+                data = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            data = []
+        
+        entry.id = str(uuid.uuid4())
+        entry.creation_date = datetime.now().isoformat()
+        entry.last_update_date = entry.creation_date
+        
+        data.append(entry.dict())
+        
+        with open(config["data.file.path"], "w") as f:
+            json.dump(data, f, indent=4)
+            
+        return entry
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
-    data.append(new_entry)
-    save_data(data)
-    return new_entry
+@app.put("/api/entries/{entry_id}")
+async def update_entry(entry_id: str, entry_update: Entry):
+    try:
+        with open(config["data.file.path"], "r") as f:
+            data = json.load(f)
+            
+        for i, entry in enumerate(data):
+            if entry["id"] == entry_id:
+                updated_entry = entry.copy()
+                updated_entry.update(entry_update.dict(exclude_unset=True))
+                updated_entry["last_update_date"] = datetime.now().isoformat()
+                # Preserve original creation data if not provided
+                if not entry_update.created_by:
+                    updated_entry["created_by"] = entry["created_by"]
+                if not entry_update.creation_date:
+                    updated_entry["creation_date"] = entry["creation_date"]
+                
+                data[i] = updated_entry
+                
+                with open(config["data.file.path"], "w") as f:
+                    json.dump(data, f, indent=4)
+                return updated_entry
+                
+        raise HTTPException(status_code=404, detail="Entry not found")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
-@app.put("/api/entries/{entry_id}", response_model=Entry)
-async def update_entry(entry_id: str, updated_entry: Entry):
-    data = read_data()
+# --- Todo Endpoints ---
+
+@app.get("/api/todos", response_model=TodoList)
+async def get_todos():
+    try:
+        with open(config["todo.storage.path"], "r") as f:
+            data = json.load(f)
+        return data
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {"current_day": [], "next_day": [], "pending": []}
+
+@app.post("/api/todos")
+async def save_todos(todos: TodoList):
+    try:
+        with open(config["todo.storage.path"], "w") as f:
+            json.dump(todos.dict(), f, indent=4)
+        return {"message": "Todos saved successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/todos/masterlist")
+async def get_masterlist():
+    try:
+        with open(config["todo.masterlist.path"], "r") as f:
+            lines = f.readlines()
+        return [line.strip() for line in lines if line.strip()]
+    except FileNotFoundError:
+        return []
+
+# --- Notes Endpoints ---
+
+@app.post("/api/notes")
+async def save_note(note: Note):
+    try:
+        filename = f"{note.title.replace(' ', '_')}_{datetime.now().strftime('%Y%m%d%H%M%S')}.txt"
+        filepath = os.path.join(config["notes.storage.path"], filename)
+        
+        with open(filepath, "w") as f:
+            f.write(note.content)
+            
+        return {"message": "Note saved successfully", "filename": filename}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# --- Search Endpoints ---
+
+@app.get("/api/search")
+async def search(q: str = Query(..., min_length=1)):
+    results = []
+    root_path = config["search.root.path"]
     
-    for i, existing in enumerate(data):
-        if existing['id'] == entry_id:
-            # Check for duplicates if problem is being changed
-            if existing['problem'].lower() != updated_entry.problem.lower():
-                for other in data:
-                    if other['id'] != entry_id and other['problem'].lower() == updated_entry.problem.lower():
-                        raise HTTPException(status_code=400, detail="Problem already exists")
-            
-            # Update fields
-            data[i]['problem'] = updated_entry.problem
-            data[i]['solution'] = updated_entry.solution
-            data[i]['app_name'] = updated_entry.app_name
-            data[i]['last_updated_by'] = updated_entry.last_updated_by
-            
-            # Update timestamp
-            data[i]['last_update_date'] = datetime.now().isoformat()
-            
-            save_data(data)
-            return data[i]
-            
-    raise HTTPException(status_code=404, detail="Entry not found")
+    try:
+        # Walk through the directory
+        for root, dirs, files in os.walk(root_path):
+            for file in files:
+                if file.endswith((".json", ".txt", ".md", ".py", ".js", ".css", ".html")):
+                    filepath = os.path.join(root, file)
+                    try:
+                        with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
+                            content = f.read()
+                            
+                        # Check filename
+                        if q.lower() in file.lower():
+                            results.append({
+                                "file": file,
+                                "path": filepath,
+                                "match_type": "filename",
+                                "snippet": ""
+                            })
+                            
+                        # Check content
+                        if q.lower() in content.lower():
+                            # Find snippet
+                            idx = content.lower().find(q.lower())
+                            start = max(0, idx - 50)
+                            end = min(len(content), idx + 50 + len(q))
+                            snippet = "..." + content[start:end].replace("\n", " ") + "..."
+                            
+                            results.append({
+                                "file": file,
+                                "path": filepath,
+                                "match_type": "content",
+                                "snippet": snippet
+                            })
+                    except Exception:
+                        continue # Skip unreadable files
+                        
+        return results
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn
-    # Port is already loaded from properties at the top
-    uvicorn.run(app, host="0.0.0.0", port=BACKEND_PORT)
+    # Read port from app.properties again for main execution
+    port = 8000
+    try:
+        prop_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'app.properties')
+        with open(prop_path, "r") as f:
+            for line in f:
+                if "BACKEND_PORT" in line:
+                    port = int(line.split("=")[1].strip())
+    except:
+        pass
+    uvicorn.run(app, host="0.0.0.0", port=port)
