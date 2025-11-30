@@ -68,7 +68,9 @@ const NotesTab = () => {
           </div>
         </div>
 
-        <button type="submit">Save Note</button>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
+          <button type="submit" style={{ width: 'auto', minWidth: '120px' }}>Save Note</button>
+        </div>
         
         {message && <div className="success-msg">{message}</div>}
         {error && <div className="error-msg">{error}</div>}

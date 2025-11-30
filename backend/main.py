@@ -40,10 +40,12 @@ def load_config():
     if "todo.masterlist.path" not in config: config["todo.masterlist.path"] = "backend/masterlist.txt"
     if "notes.storage.path" not in config: config["notes.storage.path"] = "backend/notes"
     if "search.root.path" not in config: config["search.root.path"] = "backend"
+    if "frequent.items.path" not in config: config["frequent.items.path"] = "backend/frequent_items.txt"
+    if "templates.path" not in config: config["templates.path"] = "backend/templates"
     
     # Resolve relative paths relative to the project root (parent of backend)
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    for key in ["data.file.path", "todo.storage.path", "todo.masterlist.path", "notes.storage.path", "search.root.path"]:
+    for key in ["data.file.path", "todo.storage.path", "todo.masterlist.path", "notes.storage.path", "search.root.path", "frequent.items.path", "templates.path"]:
         if not os.path.isabs(config[key]):
             config[key] = os.path.join(project_root, config[key])
             
@@ -287,6 +289,42 @@ async def browse_folders(path: Optional[str] = Query(None)):
             "parent_path": parent,
             "folders": items
         }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/frequent")
+async def get_frequent_items():
+    try:
+        with open(config["frequent.items.path"], "r") as f:
+            lines = f.readlines()
+        return [line.strip() for line in lines if line.strip()]
+    except FileNotFoundError:
+        return []
+
+@app.get("/api/templates")
+async def get_templates():
+    templates = []
+    templates_path = config["templates.path"]
+    
+    if not os.path.exists(templates_path):
+        return []
+        
+    try:
+        for filename in os.listdir(templates_path):
+            if filename.endswith(".md"):
+                filepath = os.path.join(templates_path, filename)
+                with open(filepath, "r", encoding="utf-8") as f:
+                    content = f.read()
+                
+                # Create a friendly name from filename
+                # e.g., "commit_checklist.md" -> "Commit Checklist"
+                name = filename.replace(".md", "").replace("_", " ").title()
+                
+                templates.append({
+                    "name": name,
+                    "content": content
+                })
+        return templates
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
