@@ -1,11 +1,18 @@
 {
     "current_day": [
         {
-            "id": "1764397059795",
-            "context": "trst",
-            "task": "trest",
-            "duration": "1",
-            "completed": false
+            "id": "1764522759419",
+            "context": "",
+            "task": "Run Tests",
+            "duration": "2h 1m",
+            "completed": true
+        },
+        {
+            "id": "1764522784122",
+            "context": "test",
+            "task": "test2",
+            "duration": "0h 1m",
+            "completed": true
         }
     ],
     "next_day": [],

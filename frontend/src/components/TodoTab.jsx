@@ -51,9 +51,11 @@ const TodoTab = () => {
   };
 
   const handleUpdate = (section, newItems) => {
-    const updatedTodos = { ...todos, [section]: newItems };
-    setTodos(updatedTodos);
-    saveTodos(updatedTodos);
+    setTodos(prevTodos => {
+      const updatedTodos = { ...prevTodos, [section]: newItems };
+      saveTodos(updatedTodos);
+      return updatedTodos;
+    });
   };
 
   const calculateTotalDuration = (items) => {
@@ -110,10 +112,25 @@ const TodoSection = ({ title, items, onUpdate, masterlist, hasCheckbox, totalDur
   const [suggestions, setSuggestions] = useState([]);
 
   const handleAddItem = () => {
-    if (!newItem.task) return;
+    console.log("Adding item:", newItem);
+    if (!newItem.task.trim()) {
+      alert("Please enter a task description");
+      return;
+    }
+
+    let formattedDuration = newItem.duration;
+    // If input is just numbers, treat as minutes and convert to Xh Ym
+    if (formattedDuration && /^\d+$/.test(formattedDuration.trim())) {
+      const mins = parseInt(formattedDuration);
+      const h = Math.floor(mins / 60);
+      const m = mins % 60;
+      formattedDuration = `${h}h ${m}m`;
+    }
+
     const item = {
       id: Date.now().toString(),
       ...newItem,
+      duration: formattedDuration,
       completed: false
     };
     onUpdate([...items, item]);
@@ -225,10 +242,10 @@ const TodoSection = ({ title, items, onUpdate, masterlist, hasCheckbox, totalDur
           className="todo-input duration" 
           value={newItem.duration} 
           onChange={(e) => setNewItem({ ...newItem, duration: e.target.value })}
-          placeholder="Duration (e.g. 1h 30m)"
+          placeholder="Mins"
           onKeyDown={(e) => e.key === 'Enter' && handleAddItem()}
         />
-        <button className="add-btn" onClick={handleAddItem}>+</button>
+        <button type="button" className="add-btn" onClick={handleAddItem}>+</button>
       </div>
     </div>
   );

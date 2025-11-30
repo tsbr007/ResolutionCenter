@@ -190,13 +190,24 @@ async def save_note(note: Note):
 # --- Search Endpoints ---
 
 @app.get("/api/search")
-async def search(q: str = Query(..., min_length=1)):
+async def search(q: str = Query(..., min_length=1), folder_path: Optional[str] = Query(None), recursive: bool = Query(True)):
     results = []
-    root_path = config["search.root.path"]
+    root_path = folder_path if folder_path and os.path.isdir(folder_path) else config["search.root.path"]
     
     try:
+        # Determine iterator based on recursive flag
+        if recursive:
+            iterator = os.walk(root_path)
+        else:
+            # Only top level files
+            try:
+                files = [f for f in os.listdir(root_path) if os.path.isfile(os.path.join(root_path, f))]
+                iterator = [(root_path, [], files)]
+            except Exception:
+                iterator = []
+
         # Walk through the directory
-        for root, dirs, files in os.walk(root_path):
+        for root, dirs, files in iterator:
             for file in files:
                 if file.endswith((".json", ".txt", ".md", ".py", ".js", ".css", ".html")):
                     filepath = os.path.join(root, file)
@@ -231,6 +242,51 @@ async def search(q: str = Query(..., min_length=1)):
                         continue # Skip unreadable files
                         
         return results
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/browse")
+async def browse_folders(path: Optional[str] = Query(None)):
+    try:
+        # Determine start path
+        if path:
+            start_path = path
+        else:
+            start_path = config["search.root.path"]
+            
+        # Validate path
+        if not os.path.exists(start_path):
+            # If provided path doesn't exist, try config default, else cwd
+            start_path = config["search.root.path"]
+            if not os.path.exists(start_path):
+                start_path = os.getcwd()
+        
+        if not os.path.isdir(start_path):
+             start_path = os.path.dirname(start_path)
+
+        start_path = os.path.abspath(start_path)
+        
+        items = []
+        try:
+            with os.scandir(start_path) as it:
+                for entry in it:
+                    if entry.is_dir() and not entry.name.startswith('.'):
+                        items.append(entry.name)
+        except PermissionError:
+            pass 
+            
+        items.sort()
+        
+        parent = os.path.dirname(start_path)
+        # Check if we are at root
+        if parent == start_path:
+            parent = None
+        
+        return {
+            "current_path": start_path,
+            "parent_path": parent,
+            "folders": items
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
