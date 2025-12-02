@@ -42,10 +42,11 @@ def load_config():
     if "search.root.path" not in config: config["search.root.path"] = "backend"
     if "frequent.items.path" not in config: config["frequent.items.path"] = "backend/frequent_items.txt"
     if "templates.path" not in config: config["templates.path"] = "backend/templates"
+    if "diary.storage.path" not in config: config["diary.storage.path"] = "backend/diary"
     
     # Resolve relative paths relative to the project root (parent of backend)
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    for key in ["data.file.path", "todo.storage.path", "todo.masterlist.path", "notes.storage.path", "search.root.path", "frequent.items.path", "templates.path"]:
+    for key in ["data.file.path", "todo.storage.path", "todo.masterlist.path", "notes.storage.path", "search.root.path", "frequent.items.path", "templates.path", "diary.storage.path"]:
         if not os.path.isabs(config[key]):
             config[key] = os.path.join(project_root, config[key])
             
@@ -57,6 +58,7 @@ config = load_config()
 os.makedirs(os.path.dirname(config["data.file.path"]), exist_ok=True)
 os.makedirs(os.path.dirname(config["todo.storage.path"]), exist_ok=True)
 os.makedirs(config["notes.storage.path"], exist_ok=True)
+os.makedirs(config["diary.storage.path"], exist_ok=True)
 
 # Models
 class Entry(BaseModel):
@@ -83,6 +85,10 @@ class TodoList(BaseModel):
 
 class Note(BaseModel):
     title: str
+    content: str
+
+class DiaryEntry(BaseModel):
+    date: str # YYYY-MM-DD
     content: str
 
 # --- Problem Solver Endpoints ---
@@ -325,6 +331,55 @@ async def get_templates():
                     "content": content
                 })
         return templates
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# --- Work Diary Endpoints ---
+
+@app.get("/api/diary/{date}")
+async def get_diary_entry(date: str):
+    try:
+        # Validate date format roughly
+        datetime.strptime(date, "%Y-%m-%d")
+        
+        # Extract YYYY-MM for subfolder
+        year_month = date[:7]
+        
+        filename = f"{date}.txt"
+        filepath = os.path.join(config["diary.storage.path"], year_month, filename)
+        
+        if os.path.exists(filepath):
+            with open(filepath, "r", encoding="utf-8") as f:
+                content = f.read()
+            return {"date": date, "content": content}
+        else:
+            return {"date": date, "content": ""}
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/diary")
+async def save_diary_entry(entry: DiaryEntry):
+    try:
+        # Validate date format roughly
+        datetime.strptime(entry.date, "%Y-%m-%d")
+        
+        # Extract YYYY-MM for subfolder
+        year_month = entry.date[:7]
+        
+        folder_path = os.path.join(config["diary.storage.path"], year_month)
+        os.makedirs(folder_path, exist_ok=True)
+        
+        filename = f"{entry.date}.txt"
+        filepath = os.path.join(folder_path, filename)
+        
+        with open(filepath, "w", encoding="utf-8") as f:
+            f.write(entry.content)
+            
+        return {"message": "Diary entry saved successfully"}
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

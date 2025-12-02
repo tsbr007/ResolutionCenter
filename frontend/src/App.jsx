@@ -6,6 +6,7 @@ import SearchTab from './components/SearchTab';
 import SnippetsTab from './components/SnippetsTab';
 import TemplatesTab from './components/TemplatesTab';
 import TodoTab from './components/TodoTab';
+import WorkDiaryTab from './components/WorkDiaryTab';
 import WorldClockTab from './components/WorldClockTab';
 
 function App() {
@@ -27,6 +28,8 @@ function App() {
         return <TemplatesTab />;
       case 'world-clock':
         return <WorldClockTab />;
+      case 'work-diary':
+        return <WorkDiaryTab />;
       case 'notes':
         return <NotesTab />;
       default:
@@ -100,6 +103,12 @@ function App() {
               onClick={() => setActiveTab('world-clock')}
             >
               World Clock
+            </button>
+            <button 
+              className={`tab-btn ${activeTab === 'work-diary' ? 'active' : ''}`}
+              onClick={() => setActiveTab('work-diary')}
+            >
+              Work Diary
             </button>
             <button 
               className={`tab-btn ${activeTab === 'notes' ? 'active' : ''}`}

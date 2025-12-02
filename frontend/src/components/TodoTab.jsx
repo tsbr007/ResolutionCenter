@@ -51,11 +51,41 @@ const TodoTab = () => {
   };
 
   const handleUpdate = (section, newItems) => {
-    setTodos(prevTodos => {
-      const updatedTodos = { ...prevTodos, [section]: newItems };
-      saveTodos(updatedTodos);
-      return updatedTodos;
-    });
+    const updatedTodos = { ...todos, [section]: newItems };
+    setTodos(updatedTodos);
+    saveTodos(updatedTodos);
+  };
+
+  const handleMoveItem = (itemId, fromSection, toSection) => {
+    const itemToMove = todos[fromSection].find(i => i.id === itemId);
+    if (!itemToMove) return;
+
+    const newFromList = todos[fromSection].filter(i => i.id !== itemId);
+    const newToList = [...todos[toSection], itemToMove];
+
+    const updatedTodos = {
+      ...todos,
+      [fromSection]: newFromList,
+      [toSection]: newToList
+    };
+    setTodos(updatedTodos);
+    saveTodos(updatedTodos);
+  };
+
+  const handleMoveAll = (fromSection, toSection) => {
+    const itemsToMove = todos[fromSection];
+    if (itemsToMove.length === 0) return;
+
+    const newFromList = [];
+    const newToList = [...todos[toSection], ...itemsToMove];
+
+    const updatedTodos = {
+      ...todos,
+      [fromSection]: newFromList,
+      [toSection]: newToList
+    };
+    setTodos(updatedTodos);
+    saveTodos(updatedTodos);
   };
 
   const calculateTotalDuration = (items) => {
@@ -79,25 +109,34 @@ const TodoTab = () => {
   return (
     <div className="todo-tab">
       <TodoSection 
+        id="current_day"
         title={`Current Day (${new Date().toLocaleDateString()})`} 
         items={todos.current_day} 
         onUpdate={(items) => handleUpdate('current_day', items)}
+        onMoveItem={handleMoveItem}
+        onMoveAll={handleMoveAll}
         masterlist={masterlist}
         hasCheckbox={true}
         totalDuration={calculateTotalDuration(todos.current_day)}
       />
       <TodoSection 
+        id="next_day"
         title="Next Day" 
         items={todos.next_day} 
         onUpdate={(items) => handleUpdate('next_day', items)}
+        onMoveItem={handleMoveItem}
+        onMoveAll={handleMoveAll}
         masterlist={masterlist}
         hasCheckbox={false}
         totalDuration={calculateTotalDuration(todos.next_day)}
       />
       <TodoSection 
+        id="pending"
         title="Pending Items" 
         items={todos.pending} 
         onUpdate={(items) => handleUpdate('pending', items)}
+        onMoveItem={handleMoveItem}
+        onMoveAll={handleMoveAll}
         masterlist={masterlist}
         hasCheckbox={false}
         totalDuration={calculateTotalDuration(todos.pending)}
@@ -106,7 +145,7 @@ const TodoTab = () => {
   );
 };
 
-const TodoSection = ({ title, items, onUpdate, masterlist, hasCheckbox, totalDuration }) => {
+const TodoSection = ({ id, title, items, onUpdate, onMoveItem, onMoveAll, masterlist, hasCheckbox, totalDuration }) => {
   const [newItem, setNewItem] = useState({ context: '', task: '', duration: '' });
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
@@ -175,7 +214,28 @@ const TodoSection = ({ title, items, onUpdate, masterlist, hasCheckbox, totalDur
   return (
     <div className="todo-section card" style={{ marginBottom: '1rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-        <h3>{title}</h3>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'nowrap' }}>
+          <h3 style={{ margin: 0, whiteSpace: 'nowrap' }}>{title}</h3>
+          {id === 'next_day' && items.length > 0 && (
+            <button 
+              onClick={() => onMoveAll('next_day', 'current_day')}
+              style={{
+                fontSize: '0.75rem',
+                padding: '0.35rem 1rem',
+                backgroundColor: 'var(--accent-color)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '9999px',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                fontWeight: '600',
+                boxShadow: '0 2px 4px rgba(215, 30, 40, 0.2)'
+              }}
+            >
+              Move All to Current
+            </button>
+          )}
+        </div>
         <span className="duration-badge">Total: {totalDuration}</span>
       </div>
       
@@ -208,6 +268,18 @@ const TodoSection = ({ title, items, onUpdate, masterlist, hasCheckbox, totalDur
               onChange={(e) => handleEditItem(item.id, 'duration', e.target.value)}
               placeholder="Duration"
             />
+            <div className="move-select-wrapper">
+              <select
+                className="move-select"
+                value=""
+                onChange={(e) => onMoveItem(item.id, id, e.target.value)}
+              >
+                <option value="" disabled>Move</option>
+                {id !== 'current_day' && <option value="current_day">Current</option>}
+                {id !== 'next_day' && <option value="next_day">Next</option>}
+                {id !== 'pending' && <option value="pending">Pending</option>}
+              </select>
+            </div>
             <button className="delete-btn" onClick={() => handleDelete(item.id)}>&times;</button>
           </div>
         ))}
@@ -247,6 +319,36 @@ const TodoSection = ({ title, items, onUpdate, masterlist, hasCheckbox, totalDur
         />
         <button type="button" className="add-btn" onClick={handleAddItem}>+</button>
       </div>
+
+      <style>{`
+        .move-select {
+          appearance: none;
+          background-color: transparent;
+          border: 1px solid transparent;
+          border-radius: 9999px;
+          padding: 0.25rem 1.5rem 0.25rem 0.75rem;
+          font-size: 0.8rem;
+          color: var(--text-secondary);
+          cursor: pointer;
+          background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2364748b%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+          background-repeat: no-repeat;
+          background-position: right 0.5rem center;
+          background-size: 0.65em auto;
+          transition: all 0.2s;
+          font-weight: 500;
+        }
+        .move-select:hover {
+          background-color: rgba(0,0,0,0.05);
+          color: var(--text-primary);
+        }
+        .move-select:focus {
+          outline: none;
+          border-color: var(--accent-color);
+        }
+        .todo-item:hover .move-select {
+          border-color: var(--border-color);
+        }
+      `}</style>
     </div>
   );
 };
