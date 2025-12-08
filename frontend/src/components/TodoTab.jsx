@@ -88,6 +88,30 @@ const TodoTab = () => {
     saveTodos(updatedTodos);
   };
 
+  const handleMoveUp = (section, index) => {
+    if (index === 0) return;
+    const newList = [...todos[section]];
+    const temp = newList[index];
+    newList[index] = newList[index - 1];
+    newList[index - 1] = temp;
+    
+    const updatedTodos = { ...todos, [section]: newList };
+    setTodos(updatedTodos);
+    saveTodos(updatedTodos);
+  };
+
+  const handleMoveDown = (section, index) => {
+    if (index === todos[section].length - 1) return;
+    const newList = [...todos[section]];
+    const temp = newList[index];
+    newList[index] = newList[index + 1];
+    newList[index + 1] = temp;
+
+    const updatedTodos = { ...todos, [section]: newList };
+    setTodos(updatedTodos);
+    saveTodos(updatedTodos);
+  };
+
   const calculateTotalDuration = (items) => {
     let totalMinutes = 0;
     items.forEach(item => {
@@ -115,6 +139,8 @@ const TodoTab = () => {
         onUpdate={(items) => handleUpdate('current_day', items)}
         onMoveItem={handleMoveItem}
         onMoveAll={handleMoveAll}
+        onMoveUp={(index) => handleMoveUp('current_day', index)}
+        onMoveDown={(index) => handleMoveDown('current_day', index)}
         masterlist={masterlist}
         hasCheckbox={true}
         totalDuration={calculateTotalDuration(todos.current_day)}
@@ -126,6 +152,8 @@ const TodoTab = () => {
         onUpdate={(items) => handleUpdate('next_day', items)}
         onMoveItem={handleMoveItem}
         onMoveAll={handleMoveAll}
+        onMoveUp={(index) => handleMoveUp('next_day', index)}
+        onMoveDown={(index) => handleMoveDown('next_day', index)}
         masterlist={masterlist}
         hasCheckbox={false}
         totalDuration={calculateTotalDuration(todos.next_day)}
@@ -137,6 +165,8 @@ const TodoTab = () => {
         onUpdate={(items) => handleUpdate('pending', items)}
         onMoveItem={handleMoveItem}
         onMoveAll={handleMoveAll}
+        onMoveUp={(index) => handleMoveUp('pending', index)}
+        onMoveDown={(index) => handleMoveDown('pending', index)}
         masterlist={masterlist}
         hasCheckbox={false}
         totalDuration={calculateTotalDuration(todos.pending)}
@@ -145,7 +175,7 @@ const TodoTab = () => {
   );
 };
 
-const TodoSection = ({ id, title, items, onUpdate, onMoveItem, onMoveAll, masterlist, hasCheckbox, totalDuration }) => {
+const TodoSection = ({ id, title, items, onUpdate, onMoveItem, onMoveAll, onMoveUp, onMoveDown, masterlist, hasCheckbox, totalDuration }) => {
   const [newItem, setNewItem] = useState({ context: '', task: '', duration: '' });
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
@@ -280,6 +310,24 @@ const TodoSection = ({ id, title, items, onUpdate, onMoveItem, onMoveAll, master
                 {id !== 'pending' && <option value="pending">Pending</option>}
               </select>
             </div>
+            <div className="sort-buttons">
+              <button 
+                className="sort-btn" 
+                onClick={() => onMoveUp(items.indexOf(item))}
+                disabled={items.indexOf(item) === 0}
+                title="Move Up"
+              >
+                ↑
+              </button>
+              <button 
+                className="sort-btn" 
+                onClick={() => onMoveDown(items.indexOf(item))}
+                disabled={items.indexOf(item) === items.length - 1}
+                title="Move Down"
+              >
+                ↓
+              </button>
+            </div>
             <button className="delete-btn" onClick={() => handleDelete(item.id)}>&times;</button>
           </div>
         ))}
@@ -347,6 +395,30 @@ const TodoSection = ({ id, title, items, onUpdate, onMoveItem, onMoveAll, master
         }
         .todo-item:hover .move-select {
           border-color: var(--border-color);
+        }
+        .sort-buttons {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          margin: 0 0.5rem;
+        }
+        .sort-btn {
+          background: none;
+          border: 1px solid transparent;
+          cursor: pointer;
+          font-size: 0.7rem;
+          padding: 0 0.2rem;
+          color: var(--text-secondary);
+          border-radius: 3px;
+          line-height: 1;
+        }
+        .sort-btn:hover:not(:disabled) {
+          background-color: rgba(0,0,0,0.05);
+          color: var(--text-primary);
+        }
+        .sort-btn:disabled {
+          opacity: 0.3;
+          cursor: default;
         }
       `}</style>
     </div>

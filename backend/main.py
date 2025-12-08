@@ -5,7 +5,7 @@ from typing import List, Optional
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from datetime import datetime
+from datetime import datetime, timedelta
 import uuid
 
 app = FastAPI()
@@ -195,6 +195,52 @@ async def save_note(note: Note):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/api/notes/recent")
+async def get_recent_notes():
+    try:
+        notes_path = config["notes.storage.path"]
+        recent_notes = []
+        
+        # Calculate date 30 days ago
+        thirty_days_ago = datetime.now() - timedelta(days=30)
+        
+        if os.path.exists(notes_path):
+            for filename in os.listdir(notes_path):
+                if filename.endswith(".txt"):
+                    filepath = os.path.join(notes_path, filename)
+                    
+                    # Get file modification time
+                    mtime = os.path.getmtime(filepath)
+                    mod_date = datetime.fromtimestamp(mtime)
+                    
+                    if mod_date >= thirty_days_ago:
+                        try:
+                            with open(filepath, "r", encoding="utf-8") as f:
+                                content = f.read()
+                                
+                            # Extract title from filename (simple heuristic based on save format)
+                            # Format: Title_YYYYMMDDHHMMSS.txt
+                            # We can also just use the first line or the filename part before the last underscore
+                            
+                            # Attempt to parse title from filename
+                            title_part = filename.rsplit('_', 1)[0]
+                            title = title_part.replace('_', ' ')
+                            
+                            recent_notes.append({
+                                "filename": filename,
+                                "title": title,
+                                "content": content,
+                                "date": mod_date.isoformat()
+                            })
+                        except Exception:
+                            continue # Skip unreadable files
+                            
+        # Sort by date descending
+        recent_notes.sort(key=lambda x: x["date"], reverse=True)
+        return recent_notes
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 # --- Search Endpoints ---
 
 @app.get("/api/search")
@@ -380,6 +426,28 @@ async def save_diary_entry(entry: DiaryEntry):
         return {"message": "Diary entry saved successfully"}
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/diary/month/{year_month}")
+async def get_diary_month_entries(year_month: str):
+    try:
+        # Validate format YYYY-MM
+        datetime.strptime(year_month, "%Y-%m")
+        
+        folder_path = os.path.join(config["diary.storage.path"], year_month)
+        
+        entries = []
+        if os.path.exists(folder_path):
+            for filename in os.listdir(folder_path):
+                if filename.endswith(".txt"):
+                    # filename is YYYY-MM-DD.txt
+                    date_str = filename.replace(".txt", "")
+                    entries.append(date_str)
+        
+        return entries
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid format. Use YYYY-MM")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
