@@ -39,23 +39,42 @@ function App() {
 
   return (
     <div className="app">
-      <header className="wf-header">
-        <div className="header-left">
-          <span className="brand-text">WELLS FARGO</span>
-        </div>
-        <div className="header-right">
-          <nav className="utility-nav">
-            <a href="#">ATMs/Locations</a>
-            <a href="#">Help</a>
-            <a href="#">Español</a>
+      <header className="sc-header">
+        <div className="header-top">
+          <nav className="top-nav">
+            <a href="#">Online banking</a>
+            <a href="#">Private banking</a>
+            <a href="#">Straight2Bank</a>
+            <a href="#">Contact us</a>
+            <a href="#">Locations</a>
           </nav>
-          <button className="search-btn" aria-label="Search">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="11" cy="11" r="8"></circle>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            </svg>
-          </button>
-          <button className="sign-on-btn">Sign On</button>
+        </div>
+        <div className="header-main">
+          <div className="header-left">
+            <div className="sc-logo-container">
+              <img src="/sc-logo.png" alt="Standard Chartered" className="sc-logo-img" />
+              <div className="sc-logo-text">
+                <span>standard</span>
+                <span>chartered</span>
+              </div>
+            </div>
+          </div>
+          <div className="header-right-group">
+            <nav className="main-nav">
+              <a href="#">About us</a>
+              <a href="#">Our businesses</a>
+              <a href="#">Investors</a>
+              <a href="#">Insights</a>
+              <a href="#">Media</a>
+              <a href="#">Careers</a>
+            </nav>
+            <div className="header-right-actions">
+              <svg className="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+            </div>
+          </div>
         </div>
       </header>
 

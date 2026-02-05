@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Standard Chartered Logo Approximation -->
+  <defs>
+    <linearGradient id="blueGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#005E9C;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0072AA;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="greenGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#009F3D;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#21AA47;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Blue Shape (Top-Left to Middle) -->
+  <path d="M22,12 C14,16 14,28 24,34 L44,46 C50,50 56,46 56,38 C56,30 50,24 40,18 Z" fill="#005E9C" />
+  
+  <!-- Green Shape (Bottom-Right to Middle, interlaced) -->
+  <path d="M42,52 C50,48 50,36 40,30 L20,18 C14,14 8,18 8,26 C8,34 14,40 24,46 Z" fill="#009F3D" />
+</svg>

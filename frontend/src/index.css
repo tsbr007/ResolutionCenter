@@ -1,10 +1,13 @@
 :root {
   --bg-color: #ffffff;
   --card-bg: #ffffff;
-  --text-primary: #1e293b;
-  --text-secondary: #64748b;
-  --accent-color: #d71e28; /* Wells Fargo Red */
-  --accent-hover: #b91c1c;
+  --text-primary: #333333;
+  --text-secondary: #666666;
+  --accent-color: #005E9C; /* SC Blue */
+  --accent-hover: #004c7e;
+  --secondary-accent: #009F3D; /* SC Green */
+  --header-top-bg: #333333;
+  --header-main-bg: #ffffff;
   --input-bg: #f8fafc;
   --border-color: #e2e8f0;
   --glass-border: 1px solid #e2e8f0;
@@ -24,7 +27,7 @@
 }
 
 body {
-  font-family: 'Verdana', sans-serif;
+  font-family: 'Inter', 'Segoe UI', sans-serif; /* Cleaner font */
   background-color: var(--bg-color);
   color: var(--text-primary);
   line-height: 1.5;
@@ -36,131 +39,153 @@ body {
   min-height: 100vh;
 }
 
-.wf-header {
-  background-color: #d71e28;
-  color: #ffffff;
-  padding: 0.5rem 2rem; /* Reduced padding to match image */
-  border-bottom: 4px solid #fcb515; /* Slightly thinner gold line */
+/* SC Header Styles */
+.sc-header {
   width: 100%;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
   position: sticky;
   top: 0;
   z-index: 1000;
+  background-color: #fff;
+  font-family: 'Inter', sans-serif;
+}
+
+.header-top {
+  background-color: var(--header-top-bg);
+  color: #fff;
+  padding: 0.25rem 2rem;
+  font-size: 0.75rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.top-nav {
+  display: flex;
+  gap: 0;
+}
+
+.top-nav a {
+  color: #fff;
+  text-decoration: none;
+  padding: 0 1rem;
+  border-right: 1px solid #555;
+  transition: color 0.2s;
+}
+
+.top-nav a:last-child {
+  border-right: none;
+}
+
+.top-nav a:hover {
+  color: #ccc;
+}
+
+.header-main {
+  background-color: var(--header-main-bg);
+  padding: 1rem 2rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  border-bottom: 1px solid #eee;
 }
 
 .header-left {
   display: flex;
   align-items: center;
+  gap: 1.5rem;
+}
+
+.sc-logo-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-right: 2rem;
+}
+
+.sc-logo-img {
+  height: 45px;
+  width: auto;
+  object-fit: contain;
+}
+
+.sc-logo-text {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  line-height: 1.1;
+  margin-left: 0.75rem; /* Increased spacing */
+}
+
+.sc-logo-text span {
+  font-size: 1.1rem;
+  font-weight: 400; /* Regular, not bold */
+  color: #0b4e99;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  letter-spacing: 0.2px;
+}
+
+.main-nav {
+  display: flex;
+  gap: 2rem;
+}
+
+.main-nav a {
+  text-decoration: none;
+  color: #555;
+  font-size: 0.95rem;
+  font-weight: 500;
+  padding: 0.5rem 0;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+}
+
+.main-nav a:hover {
+  color: var(--accent-color);
+  border-bottom-color: var(--accent-color);
+}
+
+.header-right-group {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
+.header-right-actions {
+  display: flex;
+  align-items: center;
   gap: 1rem;
 }
 
-.brand-text {
-  font-family: 'Times New Roman', Times, serif;
-  font-weight: bold;
-  font-size: 2rem;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-
-.wf-logo {
-  height: 50px;
-  width: auto;
-  border-radius: 4px;
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-}
-
-.utility-nav {
-  display: flex;
-  gap: 1.5rem;
-}
-
-.utility-nav a {
-  color: #ffffff;
-  text-decoration: none;
-  font-size: 0.8rem;
-  font-weight: 500;
-}
-
-.utility-nav a:hover {
-  text-decoration: underline;
-}
-
-.search-btn {
-  background: none;
-  border: none;
-  color: #ffffff;
-  padding: 0.25rem;
-  width: auto;
+.search-icon {
+  color: var(--accent-color);
   cursor: pointer;
-  display: flex;
-  align-items: center;
-}
-
-.search-btn svg {
   width: 20px;
   height: 20px;
 }
 
-.search-btn:hover {
-  background: none;
-  opacity: 0.8;
-}
-
-.sign-on-btn {
-  background-color: #ffffff;
-  color: #d71e28;
-  border: none;
-  border-radius: 20px;
-  padding: 0.35rem 1.25rem;
-  font-size: 0.85rem;
-  font-weight: bold;
-  cursor: pointer;
-  width: auto;
-  transition: background-color 0.2s;
-}
-
-.sign-on-btn:hover {
-  background-color: #f0f0f0;
-}
-
-h1 {
-  font-size: 2.5rem;
-  color: #1e293b;
-  text-align: center;
-  margin-bottom: 3rem;
-  background: none;
-  -webkit-text-fill-color: initial;
-}
-
+/* Tab Navigation */
 .tab-nav-container {
   background-color: #ffffff;
   border-bottom: 1px solid var(--border-color);
   margin-bottom: 2rem;
   position: sticky;
-  top: 60px; /* Adjust based on header height */
+  top: 105px; /* Adjust based on new header height */
   z-index: 900;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
 }
 
 .tab-nav {
   display: flex;
   gap: 2rem;
   overflow-x: auto;
+  padding: 0 2rem;
 }
 
 .tab-btn {
   background: none;
   border: none;
   padding: 1rem 0.5rem;
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 500;
   color: var(--text-secondary);
   cursor: pointer;
@@ -172,7 +197,7 @@ h1 {
 }
 
 .tab-btn:hover {
-  color: var(--text-primary);
+  color: var(--accent-color);
   background-color: transparent;
 }
 
@@ -188,7 +213,7 @@ h1 {
   left: 0;
   right: 0;
   height: 3px;
-  background-color: var(--accent-color);
+  background-color: var(--secondary-accent); /* Green underline */
   border-top-left-radius: 3px;
   border-top-right-radius: 3px;
 }
@@ -199,7 +224,7 @@ h1 {
   gap: 1rem;
 }
 
-/* Todo Styles */
+/* Todo Styles - Updated for SC Colors */
 .todo-list {
   display: flex;
   flex-direction: column;
@@ -239,13 +264,13 @@ h1 {
 }
 
 .todo-checkbox:hover {
-  border-color: var(--accent-color);
-  background-color: #fff1f2;
+  border-color: var(--secondary-accent);
+  background-color: #f0fdf4;
 }
 
 .todo-checkbox:checked {
-  background-color: var(--accent-color);
-  border-color: var(--accent-color);
+  background-color: var(--secondary-accent);
+  border-color: var(--secondary-accent);
   transform: scale(1.05);
 }
 
@@ -280,7 +305,7 @@ h1 {
 .todo-input.context {
   width: 15%;
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--accent-color);
   font-size: 0.85rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -342,7 +367,7 @@ h1 {
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem;
-  background-color: rgba(215, 30, 40, 0.05);
+  background-color: rgba(0, 94, 156, 0.05); /* Blue tint */
   border-radius: 0.5rem;
   border: 1px dashed var(--accent-color);
 }
@@ -374,7 +399,7 @@ h1 {
 th {
   font-weight: 700;
   color: #1e293b;
-  background-color: #94a3b8; /* Solid grey matching image */
+  background-color: #f1f5f9;
   white-space: nowrap;
 }
 
@@ -416,14 +441,14 @@ input:not([type="checkbox"]), textarea {
 input:not([type="checkbox"]):focus, textarea:focus {
   outline: none;
   border-color: var(--accent-color);
-  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+  box-shadow: 0 0 0 2px rgba(0, 94, 156, 0.1);
 }
 
 button {
   width: 100%;
   padding: 0.75rem 1.5rem;
   background: var(--accent-color);
-  color: #0f172a;
+  color: #fff;
   border: none;
   border-radius: 0.5rem;
   font-weight: 600;
@@ -436,7 +461,7 @@ button:hover {
 }
 
 .record-issue-btn {
-  background-color: #d71e28;
+  background-color: var(--secondary-accent); /* Green for positive action */
   color: #ffffff;
   border: none;
   border-radius: 9999px;
@@ -450,7 +475,7 @@ button:hover {
 }
 
 .record-issue-btn:hover {
-  background-color: #b91c1c;
+  background-color: #007e33;
   transform: translateY(-1px);
 }
 
@@ -491,12 +516,12 @@ tr {
 th {
   font-weight: 700;
   color: #1e293b;
-  background-color: #94a3b8;
+  background-color: #f8fafc;
   white-space: nowrap;
 }
 
 tr:hover {
-  background-color: rgba(56, 189, 248, 0.05);
+  background-color: rgba(0, 94, 156, 0.03);
 }
 
 .word-count {
@@ -550,7 +575,7 @@ tr:hover {
 }
 
 .suggestion-item:hover {
-  background-color: rgba(56, 189, 248, 0.1);
+  background-color: rgba(0, 94, 156, 0.05);
   color: var(--text-primary);
 }
 
@@ -601,24 +626,24 @@ tr:hover {
 
 .app-footer {
   position: fixed;
-  bottom: 1rem;
+  bottom: 0.5rem;
   right: 1rem;
-  font-size: 0.75rem;
-  color: #cbd5e1; /* Very light grey */
-  pointer-events: none; /* So it doesn't interfere with clicks */
+  font-size: 0.7rem;
+  color: #cbd5e1;
+  pointer-events: none;
   z-index: 50;
-  opacity: 0.6;
+  opacity: 0.4;
 }
 
 /* Checkbox Style for Search */
 .checkbox-wrapper {
-  display: flex !important; /* Force flex to override any global block styles */
+  display: flex !important;
   align-items: center;
   gap: 0.75rem;
   margin-top: 1rem;
   user-select: none;
   cursor: pointer;
-  width: fit-content; /* Don't take full width */
+  width: fit-content;
 }
 
 .checkbox-wrapper input[type="checkbox"] {
@@ -626,5 +651,5 @@ tr:hover {
   height: 1.2rem;
   margin: 0;
   cursor: pointer;
-  accent-color: var(--accent-color);
+  accent-color: var(--secondary-accent);
 }

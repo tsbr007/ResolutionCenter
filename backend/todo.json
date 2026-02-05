@@ -1,27 +1,47 @@
 {
-    "current_day": [
-        {
-            "id": "1765173926835",
-            "context": "test",
-            "task": "test1",
-            "duration": "0h 1m",
-            "completed": false
-        },
-        {
-            "id": "1765173938338",
-            "context": "test",
-            "task": "test6",
-            "duration": "0h 1m",
-            "completed": false
-        },
-        {
-            "id": "1765173933786",
-            "context": "test",
-            "task": "test4",
-            "duration": "0h 1m",
-            "completed": false
-        }
-    ],
-    "next_day": [],
-    "pending": []
+    "app1": {
+        "current_day": [
+            {
+                "id": "1765173926835",
+                "context": "test",
+                "task": "test1",
+                "duration": "0h 1m",
+                "completed": false
+            },
+            {
+                "id": "1765173938338",
+                "context": "test",
+                "task": "test6",
+                "duration": "0h 1m",
+                "completed": false
+            },
+            {
+                "id": "1765173933786",
+                "context": "test",
+                "task": "test4",
+                "duration": "0h 1m",
+                "completed": false
+            }
+        ],
+        "next_day": [],
+        "pending": []
+    },
+    "app2": {
+        "current_day": [
+            {
+                "id": "1770276306601",
+                "context": "tet2dfsdf",
+                "task": "rdtedrdfgdfg",
+                "duration": "7h 25m",
+                "completed": false
+            }
+        ],
+        "next_day": [],
+        "pending": []
+    },
+    "app3": {
+        "current_day": [],
+        "next_day": [],
+        "pending": []
+    }
 }

@@ -3,10 +3,11 @@ import { useEffect, useState } from 'react';
 import config from '../config';
 
 const TodoTab = () => {
+  const [activeApp, setActiveApp] = useState('app1');
   const [todos, setTodos] = useState({
-    current_day: [],
-    next_day: [],
-    pending: []
+    app1: { current_day: [], next_day: [], pending: [] },
+    app2: { current_day: [], next_day: [], pending: [] },
+    app3: { current_day: [], next_day: [], pending: [] }
   });
   const [masterlist, setMasterlist] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -19,12 +20,14 @@ const TodoTab = () => {
   const fetchTodos = async () => {
     try {
       const response = await axios.get(`${config.API_URL}/api/todos`);
-      // Ensure structure matches expected
       const data = response.data;
+      
+      // Ensure basic structure exists if backend returns partial data
+      const defaultStructure = { current_day: [], next_day: [], pending: [] };
       setTodos({
-        current_day: data.current_day || [],
-        next_day: data.next_day || [],
-        pending: data.pending || []
+        app1: data.app1 || defaultStructure,
+        app2: data.app2 || defaultStructure,
+        app3: data.app3 || defaultStructure
       });
       setLoading(false);
     } catch (err) {
@@ -42,74 +45,80 @@ const TodoTab = () => {
     }
   };
 
-  const saveTodos = async (updatedTodos) => {
+  const saveTodos = async (updatedStartTodos) => {
     try {
-      await axios.post(`${config.API_URL}/api/todos`, updatedTodos);
+      await axios.post(`${config.API_URL}/api/todos`, updatedStartTodos);
     } catch (err) {
       console.error("Failed to save todos", err);
     }
   };
 
-  const handleUpdate = (section, newItems) => {
-    const updatedTodos = { ...todos, [section]: newItems };
+  const updateCurrentAppTodos = (newAppTodos) => {
+    const updatedTodos = { ...todos, [activeApp]: newAppTodos };
     setTodos(updatedTodos);
     saveTodos(updatedTodos);
+  };
+
+  const handleUpdate = (section, newItems) => {
+    const currentAppTodos = todos[activeApp];
+    const newAppTodos = { ...currentAppTodos, [section]: newItems };
+    updateCurrentAppTodos(newAppTodos);
   };
 
   const handleMoveItem = (itemId, fromSection, toSection) => {
-    const itemToMove = todos[fromSection].find(i => i.id === itemId);
+    const currentAppTodos = todos[activeApp];
+    const itemToMove = currentAppTodos[fromSection].find(i => i.id === itemId);
     if (!itemToMove) return;
 
-    const newFromList = todos[fromSection].filter(i => i.id !== itemId);
-    const newToList = [...todos[toSection], itemToMove];
+    const newFromList = currentAppTodos[fromSection].filter(i => i.id !== itemId);
+    const newToList = [...currentAppTodos[toSection], itemToMove];
 
-    const updatedTodos = {
-      ...todos,
+    const newAppTodos = {
+      ...currentAppTodos,
       [fromSection]: newFromList,
       [toSection]: newToList
     };
-    setTodos(updatedTodos);
-    saveTodos(updatedTodos);
+    updateCurrentAppTodos(newAppTodos);
   };
 
   const handleMoveAll = (fromSection, toSection) => {
-    const itemsToMove = todos[fromSection];
+    const currentAppTodos = todos[activeApp];
+    const itemsToMove = currentAppTodos[fromSection];
     if (itemsToMove.length === 0) return;
 
     const newFromList = [];
-    const newToList = [...todos[toSection], ...itemsToMove];
+    const newToList = [...currentAppTodos[toSection], ...itemsToMove];
 
-    const updatedTodos = {
-      ...todos,
+    const newAppTodos = {
+      ...currentAppTodos,
       [fromSection]: newFromList,
       [toSection]: newToList
     };
-    setTodos(updatedTodos);
-    saveTodos(updatedTodos);
+    updateCurrentAppTodos(newAppTodos);
   };
 
   const handleMoveUp = (section, index) => {
     if (index === 0) return;
-    const newList = [...todos[section]];
+    const currentAppTodos = todos[activeApp];
+    const newList = [...currentAppTodos[section]];
     const temp = newList[index];
     newList[index] = newList[index - 1];
     newList[index - 1] = temp;
     
-    const updatedTodos = { ...todos, [section]: newList };
-    setTodos(updatedTodos);
-    saveTodos(updatedTodos);
+    const newAppTodos = { ...currentAppTodos, [section]: newList };
+    updateCurrentAppTodos(newAppTodos);
   };
 
   const handleMoveDown = (section, index) => {
-    if (index === todos[section].length - 1) return;
-    const newList = [...todos[section]];
+    const currentAppTodos = todos[activeApp];
+    if (index === currentAppTodos[section].length - 1) return;
+    const newList = [...currentAppTodos[section]];
     const temp = newList[index];
     newList[index] = newList[index + 1];
     newList[index + 1] = temp;
 
-    const updatedTodos = { ...todos, [section]: newList };
-    setTodos(updatedTodos);
-    saveTodos(updatedTodos);
+    const newAppTodos = { ...currentAppTodos, [section]: newList };
+    updateCurrentAppTodos(newAppTodos);
   };
 
   const calculateTotalDuration = (items) => {
@@ -128,14 +137,54 @@ const TodoTab = () => {
     return `${h}h ${m}m`;
   };
 
+  const calculateGrandTotalDuration = () => {
+    let totalMinutes = 0;
+    Object.values(todos).forEach(appData => {
+      appData.current_day.forEach(item => {
+        if (item.duration) {
+          const parts = item.duration.match(/(\d+)\s*h/);
+          const hours = parts ? parseInt(parts[1]) : 0;
+          const partsMin = item.duration.match(/(\d+)\s*m/);
+          const minutes = partsMin ? parseInt(partsMin[1]) : 0;
+          totalMinutes += hours * 60 + minutes;
+        }
+      });
+    });
+    const h = Math.floor(totalMinutes / 60);
+    const m = totalMinutes % 60;
+    return `${h}h ${m}m`;
+  };
+
   if (loading) return <div>Loading...</div>;
+
+  const currentTodos = todos[activeApp];
 
   return (
     <div className="todo-tab">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', borderBottom: '1px solid var(--border-color)', marginBottom: '1.5rem' }}>
+        {/* App Sub-tabs */}
+        <div className="app-tabs" style={{ borderBottom: 'none', marginBottom: 0, paddingBottom: '0.5rem' }}>
+          {['app1', 'app2', 'app3'].map(app => (
+            <button
+              key={app}
+              className={`app-tab-btn ${activeApp === app ? 'active' : ''}`}
+              onClick={() => setActiveApp(app)}
+            >
+              {app.toUpperCase()}
+            </button>
+          ))}
+        </div>
+        
+        {/* Grand Total Display */}
+        <div style={{ paddingBottom: '0.5rem', fontWeight: '600', color: 'var(--accent-color)' }}>
+          Grand Total (Current Day): {calculateGrandTotalDuration()}
+        </div>
+      </div>
+
       <TodoSection 
         id="current_day"
         title={`Current Day (${new Date().toLocaleDateString()})`} 
-        items={todos.current_day} 
+        items={currentTodos.current_day} 
         onUpdate={(items) => handleUpdate('current_day', items)}
         onMoveItem={handleMoveItem}
         onMoveAll={handleMoveAll}
@@ -143,12 +192,12 @@ const TodoTab = () => {
         onMoveDown={(index) => handleMoveDown('current_day', index)}
         masterlist={masterlist}
         hasCheckbox={true}
-        totalDuration={calculateTotalDuration(todos.current_day)}
+        totalDuration={calculateTotalDuration(currentTodos.current_day)}
       />
       <TodoSection 
         id="next_day"
         title="Next Day" 
-        items={todos.next_day} 
+        items={currentTodos.next_day} 
         onUpdate={(items) => handleUpdate('next_day', items)}
         onMoveItem={handleMoveItem}
         onMoveAll={handleMoveAll}
@@ -156,12 +205,12 @@ const TodoTab = () => {
         onMoveDown={(index) => handleMoveDown('next_day', index)}
         masterlist={masterlist}
         hasCheckbox={false}
-        totalDuration={calculateTotalDuration(todos.next_day)}
+        totalDuration={calculateTotalDuration(currentTodos.next_day)}
       />
       <TodoSection 
         id="pending"
         title="Pending Items" 
-        items={todos.pending} 
+        items={currentTodos.pending} 
         onUpdate={(items) => handleUpdate('pending', items)}
         onMoveItem={handleMoveItem}
         onMoveAll={handleMoveAll}
@@ -169,8 +218,34 @@ const TodoTab = () => {
         onMoveDown={(index) => handleMoveDown('pending', index)}
         masterlist={masterlist}
         hasCheckbox={false}
-        totalDuration={calculateTotalDuration(todos.pending)}
+        totalDuration={calculateTotalDuration(currentTodos.pending)}
       />
+
+      <style>{`
+        .app-tabs {
+          display: flex;
+          gap: 0.5rem;
+        }
+        .app-tab-btn {
+          background: none;
+          border: none;
+          padding: 0.5rem 1rem;
+          font-weight: 500;
+          color: var(--text-secondary);
+          cursor: pointer;
+          border-radius: 0.5rem;
+          transition: all 0.2s;
+          width: auto;
+        }
+        .app-tab-btn:hover {
+          background-color: var(--bg-color);
+          color: var(--accent-color);
+        }
+        .app-tab-btn.active {
+          background-color: var(--accent-color);
+          color: white;
+        }
+      `}</style>
     </div>
   );
 };

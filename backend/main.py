@@ -91,82 +91,52 @@ class DiaryEntry(BaseModel):
     date: str # YYYY-MM-DD
     content: str
 
-# --- Problem Solver Endpoints ---
-
-@app.get("/api/entries", response_model=List[Entry])
-async def get_entries():
-    try:
-        with open(config["data.file.path"], "r") as f:
-            data = json.load(f)
-        return data
-    except (FileNotFoundError, json.JSONDecodeError):
-        return []
-
-@app.post("/api/entries")
-async def create_entry(entry: Entry):
-    try:
-        try:
-            with open(config["data.file.path"], "r") as f:
-                data = json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError):
-            data = []
-        
-        entry.id = str(uuid.uuid4())
-        entry.creation_date = datetime.now().isoformat()
-        entry.last_update_date = entry.creation_date
-        
-        data.append(entry.dict())
-        
-        with open(config["data.file.path"], "w") as f:
-            json.dump(data, f, indent=4)
-            
-        return entry
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.put("/api/entries/{entry_id}")
-async def update_entry(entry_id: str, entry_update: Entry):
-    try:
-        with open(config["data.file.path"], "r") as f:
-            data = json.load(f)
-            
-        for i, entry in enumerate(data):
-            if entry["id"] == entry_id:
-                updated_entry = entry.copy()
-                updated_entry.update(entry_update.dict(exclude_unset=True))
-                updated_entry["last_update_date"] = datetime.now().isoformat()
-                # Preserve original creation data if not provided
-                if not entry_update.created_by:
-                    updated_entry["created_by"] = entry["created_by"]
-                if not entry_update.creation_date:
-                    updated_entry["creation_date"] = entry["creation_date"]
-                
-                data[i] = updated_entry
-                
-                with open(config["data.file.path"], "w") as f:
-                    json.dump(data, f, indent=4)
-                return updated_entry
-                
-        raise HTTPException(status_code=404, detail="Entry not found")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+# Type alias for the multi-app structure
+MultiAppTodos = dict[str, TodoList]
 
 # --- Todo Endpoints ---
 
-@app.get("/api/todos", response_model=TodoList)
+@app.get("/api/todos", response_model=MultiAppTodos)
 async def get_todos():
     try:
         with open(config["todo.storage.path"], "r") as f:
             data = json.load(f)
+            
+        # Migration Logic: Check if it's the old format (flat dictionary with keys current_day etc.)
+        if "current_day" in data and isinstance(data["current_day"], list):
+            # Old format detected. Migrate to app1.
+            migrated_data = {
+                "app1": data,
+                "app2": {"current_day": [], "next_day": [], "pending": []},
+                "app3": {"current_day": [], "next_day": [], "pending": []}
+            }
+            # Save the migrated structure immediately
+            with open(config["todo.storage.path"], "w") as f:
+                json.dump(migrated_data, f, indent=4)
+            return migrated_data
+            
+        # Ensure all apps exist
+        defaults = {"current_day": [], "next_day": [], "pending": []}
+        for app_name in ["app1", "app2", "app3"]:
+            if app_name not in data:
+                data[app_name] = defaults.copy()
+                
         return data
     except (FileNotFoundError, json.JSONDecodeError):
-        return {"current_day": [], "next_day": [], "pending": []}
+        # Return default structure if file not found
+        return {
+            "app1": {"current_day": [], "next_day": [], "pending": []},
+            "app2": {"current_day": [], "next_day": [], "pending": []},
+            "app3": {"current_day": [], "next_day": [], "pending": []}
+        }
 
 @app.post("/api/todos")
-async def save_todos(todos: TodoList):
+async def save_todos(todos: MultiAppTodos):
     try:
+        # Convert models to dict for saving
+        data_to_save = {k: v.dict() for k, v in todos.items()}
         with open(config["todo.storage.path"], "w") as f:
-            json.dump(todos.dict(), f, indent=4)
+            json.dump(data_to_save, f, indent=4)
         return {"message": "Todos saved successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -463,4 +433,4 @@ if __name__ == "__main__":
                     port = int(line.split("=")[1].strip())
     except:
         pass
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
