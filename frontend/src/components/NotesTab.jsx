@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import config from '../config';
 
 const NotesTab = () => {
@@ -8,6 +8,10 @@ const NotesTab = () => {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [recentNotes, setRecentNotes] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const searchTimeoutRef = useRef(null);
 
   useEffect(() => {
     fetchRecentNotes();
@@ -77,6 +81,31 @@ const NotesTab = () => {
     }, 0);
   };
 
+  const handleSearch = (e) => {
+    const query = e.target.value;
+    setSearchQuery(query);
+    
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    
+    if (!query.trim()) {
+        setIsSearching(false);
+        setSearchResults([]);
+        return;
+    }
+
+    setIsSearching(true);
+    searchTimeoutRef.current = setTimeout(async () => {
+        try {
+            const response = await axios.get(`${config.API_URL}/api/notes/search`, {
+                params: { q: query }
+            });
+            setSearchResults(response.data);
+        } catch (error) {
+            console.error('Search failed:', error);
+        }
+    }, 300);
+  };
+
   const loadNote = (note) => {
     setTitle(note.title);
     setContent(note.content);
@@ -125,34 +154,74 @@ const NotesTab = () => {
       </form>
 
       <div style={{ marginTop: '2rem' }}>
-        <h3>Recent Notes (Last 30 Days)</h3>
-        {recentNotes.length === 0 ? (
-          <p style={{ color: 'var(--text-secondary)' }}>No recent notes found.</p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <h3>{isSearching ? 'Search Results' : 'Recent Notes (Last 30 Days)'}</h3>
+            <input
+                type="text"
+                placeholder="Search notes..."
+                value={searchQuery}
+                onChange={handleSearch}
+                style={{
+                    width: '250px',
+                    padding: '0.5rem',
+                    borderRadius: '0.5rem',
+                    border: '1px solid var(--border-color)'
+                }}
+            />
+        </div>
+
+        {isSearching ? (
+             searchResults.length === 0 ? (
+                <p style={{ color: 'var(--text-secondary)' }}>No matching notes found.</p>
+             ) : (
+                <div className="table-container">
+                    <table className="data-table">
+                    <thead>
+                        <tr>
+                        <th>Title</th>
+                        <th>Snippet</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {searchResults.map((note, index) => (
+                        <tr key={index} onClick={() => loadNote(note)} style={{ cursor: 'pointer' }}>
+                            <td style={{ fontWeight: '500' }}>{note.title}</td>
+                            <td style={{ color: 'var(--text-secondary)' }}>{note.snippet}</td>
+                        </tr>
+                        ))}
+                    </tbody>
+                    </table>
+                </div>
+             )
         ) : (
-          <div className="table-container">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Title</th>
-                  <th>Preview</th>
-                  <th>Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentNotes.map((note, index) => (
-                  <tr key={index} onClick={() => loadNote(note)} style={{ cursor: 'pointer' }}>
-                    <td>{note.title}</td>
-                    <td title={note.content}>
-                      {note.content.length > 50 
-                        ? note.content.substring(0, 50) + '...' 
-                        : note.content}
-                    </td>
-                    <td>{new Date(note.date).toLocaleDateString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+            recentNotes.length === 0 ? (
+            <p style={{ color: 'var(--text-secondary)' }}>No recent notes found.</p>
+            ) : (
+            <div className="table-container">
+                <table className="data-table">
+                <thead>
+                    <tr>
+                    <th>Title</th>
+                    <th>Preview</th>
+                    <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {recentNotes.map((note, index) => (
+                    <tr key={index} onClick={() => loadNote(note)} style={{ cursor: 'pointer' }}>
+                        <td>{note.title}</td>
+                        <td title={note.content}>
+                        {note.content.length > 50 
+                            ? note.content.substring(0, 50) + '...' 
+                            : note.content}
+                        </td>
+                        <td>{new Date(note.date).toLocaleDateString()}</td>
+                    </tr>
+                    ))}
+                </tbody>
+                </table>
+            </div>
+            )
         )}
       </div>
 

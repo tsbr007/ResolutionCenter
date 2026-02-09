@@ -211,6 +211,50 @@ async def get_recent_notes():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/api/notes/search")
+async def search_notes(q: str = Query(..., min_length=1)):
+    try:
+        results = []
+        notes_path = config["notes.storage.path"]
+        
+        if not os.path.exists(notes_path):
+            return []
+            
+        for filename in os.listdir(notes_path):
+            if filename.endswith(".txt"):
+                filepath = os.path.join(notes_path, filename)
+                try:
+                    with open(filepath, "r", encoding="utf-8") as f:
+                        content = f.read()
+                        
+                    # Extract title from filename
+                    title_part = filename.rsplit('_', 1)[0]
+                    title = title_part.replace('_', ' ')
+                    
+                    # Case-insensitive search in title or content
+                    if q.lower() in title.lower() or q.lower() in content.lower():
+                        # Create snippet from content
+                        idx = content.lower().find(q.lower())
+                        if idx == -1: # Match was in title
+                            snippet = content[:100].replace("\n", " ") + "..."
+                        else:
+                            start = max(0, idx - 40)
+                            end = min(len(content), idx + 40 + len(q))
+                            snippet = "..." + content[start:end].replace("\n", " ") + "..."
+                        
+                        results.append({
+                            "filename": filename,
+                            "title": title,
+                            "content": content,
+                            "snippet": snippet
+                        })
+                except Exception:
+                    continue
+
+        return results
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 # --- Search Endpoints ---
 
 @app.get("/api/search")
@@ -413,11 +457,74 @@ async def get_diary_month_entries(year_month: str):
                 if filename.endswith(".txt"):
                     # filename is YYYY-MM-DD.txt
                     date_str = filename.replace(".txt", "")
-                    entries.append(date_str)
+                    filepath = os.path.join(folder_path, filename)
+                    
+                    try:
+                        with open(filepath, "r", encoding="utf-8") as f:
+                            content = f.read()
+                            
+                        # Create preview (first 50 words)
+                        words = content.split()
+                        preview = " ".join(words[:50])
+                        if len(words) > 50:
+                            preview += "..."
+                            
+                        entries.append({
+                            "date": date_str,
+                            "preview": preview
+                        })
+                    except Exception:
+                        # If read fails, still return date but empty preview
+                        entries.append({
+                            "date": date_str,
+                            "preview": ""
+                        })
         
         return entries
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid format. Use YYYY-MM")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/diary-search")
+async def search_diary(q: str = Query(..., min_length=1)):
+    try:
+        results = []
+        diary_path = config["diary.storage.path"]
+        
+        if not os.path.exists(diary_path):
+            return []
+            
+        # Walk through all year-month folders
+        for root, dirs, files in os.walk(diary_path):
+            for filename in files:
+                if filename.endswith(".txt"):
+                    filepath = os.path.join(root, filename)
+                    try:
+                        with open(filepath, "r", encoding="utf-8") as f:
+                            content = f.read()
+                            
+                        # Case-insensitive search
+                        if q.lower() in content.lower():
+                            # Extract date from filename (YYYY-MM-DD.txt)
+                            date_str = filename.replace(".txt", "")
+                            
+                            # Create snippet
+                            idx = content.lower().find(q.lower())
+                            start = max(0, idx - 40)
+                            end = min(len(content), idx + 40 + len(q))
+                            snippet = "..." + content[start:end].replace("\n", " ") + "..."
+                            
+                            results.append({
+                                "date": date_str,
+                                "snippet": snippet
+                            })
+                    except Exception:
+                        continue
+        
+        # Sort results by date descending
+        results.sort(key=lambda x: x["date"], reverse=True)
+        return results
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
