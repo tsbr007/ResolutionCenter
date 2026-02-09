@@ -490,7 +490,7 @@ async def get_diary_month_entries(year_month: str):
 async def search_diary(q: str = Query(..., min_length=1)):
     try:
         results = []
-        diary_path = config["diary.storage.path"]
+        diary_path = os.path.abspath(config["diary.storage.path"])
         
         if not os.path.exists(diary_path):
             return []
@@ -503,17 +503,22 @@ async def search_diary(q: str = Query(..., min_length=1)):
                     try:
                         with open(filepath, "r", encoding="utf-8") as f:
                             content = f.read()
-                            
                         # Case-insensitive search
                         if q.lower() in content.lower():
                             # Extract date from filename (YYYY-MM-DD.txt)
                             date_str = filename.replace(".txt", "")
                             
                             # Create snippet
-                            idx = content.lower().find(q.lower())
-                            start = max(0, idx - 40)
-                            end = min(len(content), idx + 40 + len(q))
-                            snippet = "..." + content[start:end].replace("\n", " ") + "..."
+                            try:
+                                idx = content.lower().find(q.lower())
+                                if idx == -1:
+                                    snippet = content[:50] + "..."
+                                else:
+                                    start = max(0, idx - 40)
+                                    end = min(len(content), idx + 40 + len(q))
+                                    snippet = "..." + content[start:end].replace("\n", " ") + "..."
+                            except Exception:
+                                snippet = "Match found"
                             
                             results.append({
                                 "date": date_str,
