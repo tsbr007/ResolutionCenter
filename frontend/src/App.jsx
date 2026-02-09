@@ -52,11 +52,7 @@ function App() {
         <div className="header-main">
           <div className="header-left">
             <div className="sc-logo-container">
-              <img src="/sc-logo.png" alt="Standard Chartered" className="sc-logo-img" />
-              <div className="sc-logo-text">
-                <span>standard</span>
-                <span>chartered</span>
-              </div>
+              <img src="/Standard-Chartered-logo-header.png" alt="Standard Chartered" className="sc-logo-img" />
             </div>
           </div>
           <div className="header-right-group">
