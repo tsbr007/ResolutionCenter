@@ -114,10 +114,10 @@ const NotesTab = () => {
 
   return (
     <div className="card">
-      <h2>Create Note</h2>
+
       <form onSubmit={handleSave}>
         <div className="form-group">
-          <label htmlFor="noteTitle">Title</label>
+
           <input
             id="noteTitle"
             type="text"
@@ -126,11 +126,12 @@ const NotesTab = () => {
             onPaste={(e) => handlePaste(e, setTitle, title)}
             placeholder="Short text title..."
             required
+            style={{ fontFamily: "'Patrick Hand', cursive", fontSize: '1.2rem' }}
           />
         </div>
         
         <div className="form-group">
-          <label htmlFor="noteContent">Notes</label>
+
           <textarea
             id="noteContent"
             value={content}
@@ -139,6 +140,7 @@ const NotesTab = () => {
             rows="15"
             placeholder="Enter your notes here..."
             required
+            style={{ fontFamily: "'Patrick Hand', cursive", fontSize: '1.2rem', lineHeight: '1.6' }}
           />
           <div className="word-count" style={{ color: countWords(content) > 5000 ? '#ef4444' : 'inherit' }}>
             {countWords(content)}/5000 words

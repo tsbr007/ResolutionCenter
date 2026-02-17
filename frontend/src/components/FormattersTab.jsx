@@ -2,6 +2,8 @@ import { useState } from 'react';
 import JsonFormatterTab from './JsonFormatterTab';
 import SqlFormatterTab from './SqlFormatterTab';
 
+import LogFormatterTab from './LogFormatterTab';
+
 const FormattersTab = () => {
   const [activeSubTab, setActiveSubTab] = useState('json');
 
@@ -45,10 +47,28 @@ const FormattersTab = () => {
         >
           SQL Formatter
         </button>
+        <button
+          onClick={() => setActiveSubTab('log')}
+          style={{
+            width: 'auto',
+            padding: '0.5rem 1.5rem',
+            borderRadius: '9999px',
+            backgroundColor: activeSubTab === 'log' ? 'var(--accent-color)' : 'transparent',
+            color: activeSubTab === 'log' ? 'white' : 'var(--text-secondary)',
+            border: activeSubTab === 'log' ? 'none' : '1px solid var(--border-color)',
+            fontWeight: '600',
+            cursor: 'pointer',
+            transition: 'all 0.2s'
+          }}
+        >
+          Log Formatter
+        </button>
       </div>
 
       <div style={{ flex: 1 }}>
-        {activeSubTab === 'json' ? <JsonFormatterTab /> : <SqlFormatterTab />}
+        {activeSubTab === 'json' && <JsonFormatterTab />}
+        {activeSubTab === 'sql' && <SqlFormatterTab />}
+        {activeSubTab === 'log' && <LogFormatterTab />}
       </div>
     </div>
   );

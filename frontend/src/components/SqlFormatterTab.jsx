@@ -57,9 +57,7 @@ const SqlFormatterTab = () => {
 
   return (
     <div className="card" style={{ height: 'calc(100vh - 200px)', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-        <h2 style={{ margin: 0, fontSize: '1.5rem', color: 'var(--text-primary)' }}>SQL Formatter</h2>
-      </div>
+
       
       <div style={{ display: 'flex', gap: '1.5rem', flex: 1, minHeight: 0 }}>
         {/* Left Pane */}

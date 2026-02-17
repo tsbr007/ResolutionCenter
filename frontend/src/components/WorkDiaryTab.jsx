@@ -197,6 +197,12 @@ const WorkDiaryTab = () => {
       setViewDate(newDateStr);
   };
 
+  const handleJumpToToday = () => {
+      const today = new Date().toISOString().split('T')[0];
+      setDate(today);
+      setViewDate(today);
+  };
+
   // Helper to check if a day has data
   const getEntryPreview = (day) => {
       const [year, month] = viewDate.split('-').map(Number);
@@ -210,7 +216,7 @@ const WorkDiaryTab = () => {
     <div className="card" style={{ height: 'calc(100vh - 200px)', display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <h2 style={{ margin: 0, color: 'var(--text-primary)' }}>Work Diary</h2>
+            <h2 style={{ margin: 0, color: 'var(--text-primary)', fontFamily: "'Dancing Script', cursive", fontSize: '2rem' }}>Work Diary</h2>
             
             {/* Search Box */}
             <div className="search-container" style={{ position: 'relative' }}>
@@ -296,6 +302,23 @@ const WorkDiaryTab = () => {
           }}>
             {status}
           </span>
+          <button
+            onClick={handleJumpToToday}
+            style={{
+              padding: '0.5rem 1rem',
+              borderRadius: '0.5rem',
+              border: '1px solid var(--border-color)',
+              backgroundColor: 'var(--bg-secondary)',
+              color: 'var(--text-primary)',
+              cursor: 'pointer',
+              fontWeight: '500',
+              fontSize: '0.85rem'
+            }}
+            title="Jump to Today"
+          >
+            Today
+          </button>
+
           <input 
             type="date" 
             value={date} 
@@ -432,10 +455,10 @@ const WorkDiaryTab = () => {
             border: '1px solid var(--border-color)',
             backgroundColor: '#f8fafc',
             color: 'var(--text-primary)',
-            fontSize: '1rem',
+            fontSize: '1.6rem',
             lineHeight: '1.6',
             resize: 'none',
-            fontFamily: 'inherit',
+            fontFamily: "'Dancing Script', cursive",
             transition: 'border-color 0.2s, box-shadow 0.2s'
           }}
           className="diary-textarea"

@@ -87,7 +87,7 @@ function App() {
               className={`tab-btn ${activeTab === 'problem-solver' ? 'active' : ''}`}
               onClick={() => setActiveTab('problem-solver')}
             >
-              Problem Solver
+              Resolution Center
             </button>
             <button 
               className={`tab-btn ${activeTab === 'search' ? 'active' : ''}`}
