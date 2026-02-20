@@ -1,0 +1,45 @@
+================================================================
+  Resolution Center - Dependency Reference
+================================================================
+
+PRE-REQUISITES (install manually if not already present)
+---------------------------------------------------------
+1. Python 3.10+          https://www.python.org/downloads/
+2. Node.js 18+           https://nodejs.org/en/download/
+3. Ollama                https://ollama.com/download
+   - After installing, pull the model:
+     ollama pull llama3.2
+
+----------------------------------------------------------------
+PYTHON (Backend)  - file: backend/requirements.txt
+----------------------------------------------------------------
+fastapi          - Web framework for the backend API
+uvicorn          - ASGI server to run FastAPI
+pydantic         - Data validation and settings models
+httpx            - Async HTTP client (used to call Ollama)
+
+----------------------------------------------------------------
+NODE.JS / REACT (Frontend)  - file: frontend/package.json
+----------------------------------------------------------------
+Runtime dependencies:
+  react            ^19        - UI library
+  react-dom        ^19        - React DOM renderer
+  axios            ^1.13      - HTTP client (used in some components)
+  marked           ^17        - Markdown parser for rendered content
+  sql-formatter    ^15        - SQL formatting utility
+
+Dev dependencies:
+  vite             ^7         - Frontend build tool & dev server
+  @vitejs/plugin-react        - Vite plugin for React/JSX
+  eslint                      - JavaScript linter
+  eslint-plugin-react-hooks   - React hooks linting rules
+  eslint-plugin-react-refresh - Fast-refresh linting rules
+  @types/react                - TypeScript types for React
+  @types/react-dom            - TypeScript types for React DOM
+  globals                     - ESLint globals config
+
+================================================================
+  HOW TO INSTALL
+================================================================
+Run  install.bat  from the project root to install everything.
+================================================================

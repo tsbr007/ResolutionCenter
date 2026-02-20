@@ -1,12 +1,15 @@
 import json
 import os
 import glob
+import asyncio
+import subprocess
 from typing import List, Optional
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from datetime import datetime, timedelta
 import uuid
+import httpx
 
 app = FastAPI()
 
@@ -43,6 +46,13 @@ def load_config():
     if "frequent.items.path" not in config: config["frequent.items.path"] = "backend/frequent_items.txt"
     if "templates.path" not in config: config["templates.path"] = "backend/templates"
     if "diary.storage.path" not in config: config["diary.storage.path"] = "backend/diary"
+
+    # Ollama defaults (non-path values — no path resolution needed)
+    if "ollama.url" not in config: config["ollama.url"] = "http://127.0.0.1:11434"
+    if "ollama.model" not in config: config["ollama.model"] = "llama3.2"
+    if "ollama.startup.timeout" not in config: config["ollama.startup.timeout"] = "20"
+    if "ollama.request.timeout" not in config: config["ollama.request.timeout"] = "120"
+    if "ollama.health.timeout" not in config: config["ollama.health.timeout"] = "3"
     
     # Resolve relative paths relative to the project root (parent of backend)
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -90,6 +100,14 @@ class Note(BaseModel):
 class DiaryEntry(BaseModel):
     date: str # YYYY-MM-DD
     content: str
+
+class LogAnalysisRequest(BaseModel):
+    log_content: str
+    model: Optional[str] = None  # None = use value from app.properties
+
+class LogAnalysisResponse(BaseModel):
+    explanation: str
+    solution: str
 
 # Type alias for the multi-app structure
 MultiAppTodos = dict[str, TodoList]
@@ -532,6 +550,136 @@ async def search_diary(q: str = Query(..., min_length=1)):
         return results
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+# --- Ollama Integration ---
+
+OLLAMA_URL = None  # Resolved from config at request time
+
+async def _is_ollama_running() -> bool:
+    """Return True if Ollama is already listening."""
+    url = config.get("ollama.url", "http://127.0.0.1:11434")
+    health_timeout = float(config.get("ollama.health.timeout", "3"))
+    try:
+        async with httpx.AsyncClient(timeout=health_timeout) as client:
+            r = await client.get(f"{url}/api/tags")
+            return r.status_code == 200
+    except Exception:
+        return False
+
+async def _wait_for_ollama(timeout: int = None) -> bool:
+    """Poll until Ollama is ready, or timeout expires."""
+    if timeout is None:
+        timeout = int(config.get("ollama.startup.timeout", "20"))
+    for _ in range(timeout):
+        if await _is_ollama_running():
+            return True
+        await asyncio.sleep(1)
+    return False
+
+@app.post("/api/analyze-logs", response_model=LogAnalysisResponse)
+async def analyze_logs(request: LogAnalysisRequest):
+    ollama_process = None
+    ollama_url = config.get("ollama.url", "http://127.0.0.1:11434")
+    model = request.model or config.get("ollama.model", "llama3.2")
+    request_timeout = float(config.get("ollama.request.timeout", "120"))
+    startup_timeout = int(config.get("ollama.startup.timeout", "20"))
+    try:
+        # --- 1. Check if Ollama is running; start it if not ---
+        already_running = await _is_ollama_running()
+        if not already_running:
+            try:
+                ollama_process = subprocess.Popen(
+                    ["ollama", "serve"],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL
+                )
+            except FileNotFoundError:
+                raise HTTPException(
+                    status_code=500,
+                    detail="Ollama is not installed or not on PATH. Please install Ollama."
+                )
+
+            ready = await _wait_for_ollama(timeout=startup_timeout)
+            if not ready:
+                if ollama_process:
+                    ollama_process.terminate()
+                raise HTTPException(
+                    status_code=500,
+                    detail="Ollama server did not start in time. Please start it manually."
+                )
+
+        # --- 2. Build prompt and call Ollama ---
+        prompt = f"""
+You are an expert software engineer. Analyze the following log trace/error message and provide:
+1. A clear explanation of what went wrong.
+2. A stepwise solution to fix it.
+
+Format your response exactly as follows, with no other text:
+
+EXPLANATION:
+<explanation text here>
+
+SOLUTION:
+<solution text here>
+
+Log Content:
+{request.log_content}
+"""
+
+        async with httpx.AsyncClient(timeout=request_timeout) as client:
+            response = await client.post(
+                f"{ollama_url}/api/generate",
+                json={
+                    "model": model,
+                    "prompt": prompt,
+                    "stream": False
+                }
+            )
+
+            if response.status_code != 200:
+                raise HTTPException(
+                    status_code=response.status_code,
+                    detail=f"Ollama API error: {response.text}"
+                )
+
+            result = response.json()
+            generated_text = result.get("response", "")
+
+        # --- 3. Parse EXPLANATION / SOLUTION sections ---
+        explanation = ""
+        solution = ""
+
+        if "EXPLANATION:" in generated_text:
+            parts = generated_text.split("EXPLANATION:")
+            if len(parts) > 1:
+                remaining = parts[1]
+                if "SOLUTION:" in remaining:
+                    explanation_part, solution_part = remaining.split("SOLUTION:", 1)
+                    explanation = explanation_part.strip()
+                    solution = solution_part.strip()
+                else:
+                    explanation = remaining.strip()
+
+        if not explanation and not solution:
+            explanation = "Could not parse explanation from model response."
+            solution = generated_text
+
+        return LogAnalysisResponse(explanation=explanation, solution=solution)
+
+    except httpx.RequestError as e:
+        raise HTTPException(status_code=500, detail=f"Failed to connect to Ollama: {str(e)}")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        # --- 4. Shut down Ollama only if WE started it ---
+        if ollama_process is not None:
+            ollama_process.terminate()
+            try:
+                ollama_process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                ollama_process.kill()
 
 if __name__ == "__main__":
     import uvicorn
