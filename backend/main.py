@@ -48,7 +48,8 @@ def load_config():
     if "diary.storage.path" not in config: config["diary.storage.path"] = "backend/diary"
 
     # Ollama defaults (non-path values — no path resolution needed)
-    if "ollama.url" not in config: config["ollama.url"] = "http://127.0.0.1:11434"
+    if "ollama.host" not in config: config["ollama.host"] = "127.0.0.1"
+    if "ollama.port" not in config: config["ollama.port"] = "11434"
     if "ollama.model" not in config: config["ollama.model"] = "llama3.2"
     if "ollama.startup.timeout" not in config: config["ollama.startup.timeout"] = "20"
     if "ollama.request.timeout" not in config: config["ollama.request.timeout"] = "120"
@@ -557,7 +558,9 @@ OLLAMA_URL = None  # Resolved from config at request time
 
 async def _is_ollama_running() -> bool:
     """Return True if Ollama is already listening."""
-    url = config.get("ollama.url", "http://127.0.0.1:11434")
+    host = config.get("ollama.host", "127.0.0.1")
+    port = config.get("ollama.port", "11434")
+    url = f"http://{host}:{port}"
     health_timeout = float(config.get("ollama.health.timeout", "3"))
     try:
         async with httpx.AsyncClient(timeout=health_timeout) as client:
@@ -579,7 +582,9 @@ async def _wait_for_ollama(timeout: int = None) -> bool:
 @app.post("/api/analyze-logs", response_model=LogAnalysisResponse)
 async def analyze_logs(request: LogAnalysisRequest):
     ollama_process = None
-    ollama_url = config.get("ollama.url", "http://127.0.0.1:11434")
+    host = config.get("ollama.host", "127.0.0.1")
+    port = config.get("ollama.port", "11434")
+    ollama_url = f"http://{host}:{port}"
     model = request.model or config.get("ollama.model", "llama3.2")
     request_timeout = float(config.get("ollama.request.timeout", "120"))
     startup_timeout = int(config.get("ollama.startup.timeout", "20"))
