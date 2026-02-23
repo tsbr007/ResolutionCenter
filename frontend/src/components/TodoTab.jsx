@@ -3,11 +3,12 @@ import { useEffect, useState } from 'react';
 import config from '../config';
 
 const TodoTab = () => {
-  const [activeApp, setActiveApp] = useState('app1');
+  const [activeApp, setActiveApp] = useState('general');
   const [todos, setTodos] = useState({
     app1: { current_day: [], next_day: [], pending: [] },
     app2: { current_day: [], next_day: [], pending: [] },
-    app3: { current_day: [], next_day: [], pending: [] }
+    app3: { current_day: [], next_day: [], pending: [] },
+    general: { current_day: [], next_day: [], pending: [] }
   });
   const [masterlist, setMasterlist] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -27,7 +28,8 @@ const TodoTab = () => {
       setTodos({
         app1: data.app1 || defaultStructure,
         app2: data.app2 || defaultStructure,
-        app3: data.app3 || defaultStructure
+        app3: data.app3 || defaultStructure,
+        general: data.general || defaultStructure
       });
       setLoading(false);
     } catch (err) {
@@ -164,13 +166,13 @@ const TodoTab = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', borderBottom: '1px solid var(--border-color)', marginBottom: '1.5rem' }}>
         {/* App Sub-tabs */}
         <div className="app-tabs" style={{ borderBottom: 'none', marginBottom: 0, paddingBottom: '0.5rem' }}>
-          {['app1', 'app2', 'app3'].map(app => (
+          {['general', 'app1', 'app2', 'app3'].map(app => (
             <button
               key={app}
               className={`app-tab-btn ${activeApp === app ? 'active' : ''}`}
               onClick={() => setActiveApp(app)}
             >
-              {app.toUpperCase()}
+              {app === 'general' ? 'General' : app.toUpperCase()}
             </button>
           ))}
         </div>
